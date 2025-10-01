@@ -79,10 +79,12 @@ public class JailedPlayersData {
 					if (jp != null) {
 						ServerPlayerEntity player = server.getPlayerManager().getPlayer(uuid);
 						if (player != null) {
+							// Player is online - release them immediately
 							player.sendMessage(Text.literal(OldSchoolJailMod.getConfig().jailExpiredMessage));
 							teleportToOriginalLocation(player, jp, server);
+							releasePlayer(uuid);
 						}
-						releasePlayer(uuid);
+						// If player is offline, don't release them yet - let PlayerEventHandler handle it when they rejoin
 					}
 				});
 			}
