@@ -124,6 +124,12 @@ public class JailCommand {
 			return 0;
 		}
 		
+		// Prevent self-jailing
+		if (source.getPlayer() != null && source.getPlayer().equals(target)) {
+			source.sendError(Text.literal("§cYou can't jail yourself!"));
+			return 0;
+		}
+		
 		// Check if target is immune
 		if (PermissionUtil.isImmune(target)) {
 			source.sendError(Text.literal("§cThat player is immune to jailing!"));
