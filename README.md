@@ -54,24 +54,28 @@ The mod uses the Fabric Permissions API and supports any permissions plugin that
 
 ## Configuration
 
-The config file is located at `config/oldschooljail.json` and is automatically generated on first run.
+The config file is located at `config/oldschooljail.toml` and is automatically generated on first run with helpful comments.
 
 ### Config Options
-```json
-{
-  "inputTimeUnit": "MINUTES",           // Time unit for jail commands: SECONDS, MINUTES, or HOURS
-  "maxSentenceSeconds": 86400,          // Maximum jail sentence in seconds (24 hours default)
-  "allowJailTime": true,                // Allow jailed players to use /jail time
-  "blockCommands": true,                // Block all commands except chat and /jail time
-  "blockTeleportation": true,           // Block teleportation and escape attempts
-  "blockBlockBreaking": true,           // Prevent breaking blocks
-  "blockBlockPlacing": true,            // Prevent placing blocks
-  "blockInteraction": true,             // Prevent block interactions
-  "jailMessage": "§cYou have been jailed for %time% by %jailer%! Reason: %reason%",
-  "releaseMessage": "§aYou have been released from jail!",
-  "jailExpiredMessage": "§aYour jail sentence has expired. You are now free!"
-}
-```
+
+The TOML file includes detailed comments for each option. Here's what you can configure:
+
+**Time Settings:**
+- `input_unit` - Time unit for commands (SECONDS, MINUTES, or HOURS)
+- `max_sentence_seconds` - Maximum sentence length in seconds
+
+**Restrictions:**
+- `block_commands` - Block all commands except /jail time
+- `block_teleportation` - Auto-teleport back if player escapes >50 blocks
+- `block_block_breaking` - Prevent breaking blocks
+- `block_block_placing` - Prevent placing blocks  
+- `block_interaction` - Prevent interacting with blocks
+
+**Messages:**
+- `release` - Message on manual release
+- `jail_expired` - Message when sentence expires
+
+All settings include helpful comments in the config file explaining what they do!
 
 ## Installation
 

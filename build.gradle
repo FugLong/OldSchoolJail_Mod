@@ -26,6 +26,11 @@ dependencies {
 
 	// Fabric API
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+	
+	// TOML parser for config files
+	implementation "com.electronwill.night-config:toml:3.6.7"
+	include "com.electronwill.night-config:toml:3.6.7"
+	include "com.electronwill.night-config:core:3.6.7"
 }
 
 processResources {
