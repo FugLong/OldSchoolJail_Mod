@@ -3,7 +3,7 @@
 A classic jail mod for Minecraft Fabric servers (1.21.8+) - just like the good old days!
 
 <p align="center">
-  <img src="OldSchoolJailLogo.png" alt="Old School Jail Logo" width="400">
+  <img src="OldSchoolJailLogo.jpeg" alt="Old School Jail Logo" width="400">
 </p>
 
 ## Features
