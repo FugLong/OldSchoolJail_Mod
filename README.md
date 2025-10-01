@@ -2,6 +2,10 @@
 
 A classic jail mod for Minecraft Fabric servers (1.21.8+) - just like the good old days!
 
+<p align="center">
+  <img src="OldSchoolJailLogo.png" alt="Old School Jail Logo" width="400">
+</p>
+
 ## Features
 
 - **Jail Players**: Jail players with customizable time limits and reasons
