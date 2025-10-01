@@ -176,13 +176,9 @@ public class JailCommand {
 		// Teleport player to jail
 		teleportToJail(target, jail);
 		
-		// Send messages
-		String jailMsg = config.jailMessage
-			.replace("%time%", formatTime(timeInSeconds))
-			.replace("%jailer%", jailerName)
-			.replace("%reason%", reason);
-		
-		target.sendMessage(Text.literal(jailMsg));
+		// Send messages - send as two separate lines for proper formatting
+		target.sendMessage(Text.literal("§cYou have been jailed for " + formatTime(timeInSeconds) + " by " + jailerName + "!"));
+		target.sendMessage(Text.literal("§eReason: " + reason));
 		source.sendFeedback(() -> Text.literal("§aJailed " + target.getName().getString() + 
 			" in '" + jail.getName() + "' for " + formatTime(timeInSeconds) + "!"), true);
 		
