@@ -30,9 +30,14 @@ jobs:
         id: get_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
         
+      - name: Get Minecraft version
+        id: get_mc_version
+        run: echo "MC_VERSION=$(grep 'minecraft_version=' gradle.properties | cut -d'=' -f2)" >> $GITHUB_OUTPUT
+        
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
+          name: "v${{ steps.get_version.outputs.VERSION }} - Minecraft ${{ steps.get_mc_version.outputs.MC_VERSION }}"
           files: build/libs/*.jar
           draft: false
           prerelease: false
