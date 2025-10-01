@@ -35,7 +35,8 @@ A classic jail mod for Minecraft Fabric servers (1.21.8+) - just like the good o
 
 - `/jail release <player>` - Release a player from jail early and teleport them back to where they were
 
-- `/jail time` - Check remaining jail time (available to jailed players)
+- `/jail time` - Check your own remaining jail time (available to jailed players)
+- `/jail time <player>` - Check any player's jail time (admin only - requires `oldschooljail.jail` permission)
 
 ### Admin Commands
 - `/jail set <jail_name>` - Set a jail at your current location
@@ -53,6 +54,7 @@ The mod uses the Fabric Permissions API and supports any permissions plugin that
 - `oldschooljail.delete` - Allows deleting jails
 - `oldschooljail.immune` - Makes a player immune to being jailed
 - `oldschooljail.time` - Allows using `/jail time` (granted to all by default)
+- `oldschooljail.jail` - Also allows using `/jail time <player>` to check other players' jail time
 
 **Note**: If no permissions plugin is installed, the mod falls back to OP level 2 for admin commands.
 

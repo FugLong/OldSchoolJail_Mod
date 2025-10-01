@@ -77,7 +77,10 @@ public class JailCommand {
 			
 			// /jail time
 			.then(CommandManager.literal("time")
-				.executes(JailCommand::checkJailTime))
+				.executes(JailCommand::checkJailTime)
+				// /jail time <player>
+				.then(CommandManager.argument("player", EntityArgumentType.player())
+					.executes(JailCommand::checkPlayerJailTime)))
 		);
 	}
 	
@@ -136,6 +139,16 @@ public class JailCommand {
 			return 0;
 		}
 		
+		// Check if target is already jailed
+		JailedPlayersData jailedData = OldSchoolJailMod.getJailedPlayersData();
+		if (jailedData.isJailed(target.getUuid())) {
+			JailedPlayer existingJail = jailedData.getJailedPlayer(target.getUuid());
+			long remaining = existingJail.getRemainingTimeSeconds();
+			source.sendError(Text.literal("§c" + target.getName().getString() + " is already jailed! " +
+				"Remaining time: " + formatTime(remaining) + ". Use /jail release first."));
+			return 0;
+		}
+		
 		JailConfig config = OldSchoolJailMod.getConfig();
 		long timeInSeconds = config.convertToSeconds(time);
 		
@@ -147,7 +160,6 @@ public class JailCommand {
 		}
 		
 		JailData jailData = OldSchoolJailMod.getJailData();
-		JailedPlayersData jailedData = OldSchoolJailMod.getJailedPlayersData();
 		
 		Jail jail = jailData.getJail(jailName);
 		if (jail == null) {
@@ -329,6 +341,30 @@ public class JailCommand {
 		
 		long remaining = jailed.getRemainingTimeSeconds();
 		source.sendFeedback(() -> Text.literal("§eYou will be released in: " + formatTime(remaining)), false);
+		
+		return 1;
+	}
+	
+	private static int checkPlayerJailTime(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+		ServerCommandSource source = context.getSource();
+		
+		// Check permission - only admins can check other players' jail time
+		if (!PermissionUtil.hasPermission(source, PermissionUtil.JAIL_PLAYER)) {
+			source.sendError(Text.literal("§cYou don't have permission to check other players' jail time!"));
+			return 0;
+		}
+		
+		ServerPlayerEntity target = EntityArgumentType.getPlayer(context, "player");
+		JailedPlayersData jailedData = OldSchoolJailMod.getJailedPlayersData();
+		JailedPlayer jailed = jailedData.getJailedPlayer(target.getUuid());
+		
+		if (jailed == null) {
+			source.sendError(Text.literal("§c" + target.getName().getString() + " is not jailed!"));
+			return 0;
+		}
+		
+		long remaining = jailed.getRemainingTimeSeconds();
+		source.sendFeedback(() -> Text.literal("§e" + target.getName().getString() + " will be released in: " + formatTime(remaining)), false);
 		
 		return 1;
 	}
