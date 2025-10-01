@@ -1,0 +1,35 @@
+{
+	"schemaVersion": 1,
+	"id": "oldschooljail",
+	"version": "${version}",
+	"name": "Old School Jail",
+	"description": "A classic jail mod for Fabric servers",
+	"authors": [
+		"Your Name"
+	],
+	"contact": {
+		"homepage": "https://github.com/yourusername/OldSchoolJail_Mod",
+		"sources": "https://github.com/yourusername/OldSchoolJail_Mod"
+	},
+	"license": "MIT",
+	"icon": "assets/oldschooljail/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.oldschooljail.OldSchoolJailMod"
+		]
+	},
+	"mixins": [
+		"oldschooljail.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.16.0",
+		"fabric-api": "*",
+		"minecraft": "~1.21.8",
+		"java": ">=21"
+	},
+	"suggests": {
+		"luckperms": "*"
+	}
+}
+
