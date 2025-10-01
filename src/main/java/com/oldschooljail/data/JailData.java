@@ -25,7 +25,7 @@ public class JailData {
 	}
 	
 	public static JailData load(MinecraftServer server) {
-		File worldDir = server.getSavePath(net.minecraft.world.World.OVERWORLD).toFile();
+		File worldDir = server.getSavePath(net.minecraft.util.WorldSavePath.ROOT).toFile();
 		File dataFile = new File(worldDir, "oldschooljail_jails.json");
 		
 		JailData data = new JailData(dataFile);

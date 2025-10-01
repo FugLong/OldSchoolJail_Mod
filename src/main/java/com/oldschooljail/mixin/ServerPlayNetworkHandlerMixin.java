@@ -45,21 +45,24 @@ public class ServerPlayNetworkHandlerMixin {
 		
 		// Check if player is too far from jail (more than 50 blocks)
 		BlockPos jailPos = jail.getPosition();
-		double distance = player.getPos().distanceTo(
+		net.minecraft.util.math.Vec3d jailPosVec = new net.minecraft.util.math.Vec3d(
 			jailPos.getX() + 0.5,
 			jailPos.getY(),
 			jailPos.getZ() + 0.5
 		);
+		double distance = player.getPos().distanceTo(jailPosVec);
 		
 		if (distance > 50) {
 			// Teleport back to jail
 			player.teleport(
-				player.getServerWorld(),
+				player.getWorld().getServer().getWorld(player.getWorld().getRegistryKey()),
 				jailPos.getX() + 0.5,
 				jailPos.getY(),
 				jailPos.getZ() + 0.5,
+				java.util.Set.of(),
 				player.getYaw(),
-				player.getPitch()
+				player.getPitch(),
+				true
 			);
 			player.sendMessage(Text.literal("§cYou cannot escape from jail!"), true);
 		}

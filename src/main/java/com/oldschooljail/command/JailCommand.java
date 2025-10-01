@@ -16,6 +16,7 @@ import com.oldschooljail.util.PermissionUtil;
 import net.minecraft.command.CommandSource;
 import net.minecraft.command.argument.BlockPosArgumentType;
 import net.minecraft.command.argument.EntityArgumentType;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -25,6 +26,7 @@ import net.minecraft.registry.RegistryKey;
 import net.minecraft.world.World;
 
 import java.util.Collection;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 public class JailCommand {
@@ -282,7 +284,7 @@ public class JailCommand {
 		}
 		
 		BlockPos pos = jail.getPosition();
-		player.teleport(world, pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, 0, 0);
+		player.teleport(world, pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, Set.of(), 0, 0, true);
 	}
 	
 	private static String formatTime(long seconds) {

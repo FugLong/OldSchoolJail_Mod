@@ -29,7 +29,7 @@ public class JailedPlayersData {
 	}
 	
 	public static JailedPlayersData load(MinecraftServer server) {
-		File worldDir = server.getSavePath(net.minecraft.world.World.OVERWORLD).toFile();
+		File worldDir = server.getSavePath(net.minecraft.util.WorldSavePath.ROOT).toFile();
 		File dataFile = new File(worldDir, "oldschooljail_players.json");
 		
 		JailedPlayersData data = new JailedPlayersData(dataFile);
