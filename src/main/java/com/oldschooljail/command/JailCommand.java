@@ -48,7 +48,13 @@ public class JailCommand {
 			.then(CommandManager.argument("player", EntityArgumentType.player())
 				.then(CommandManager.argument("time", IntegerArgumentType.integer(1))
 					.then(CommandManager.argument("reason", StringArgumentType.greedyString())
-						.executes(JailCommand::jailPlayer))))
+						.executes(JailCommand::jailPlayer)))
+				// /jail <player> <jail_name> <time> <reason>
+				.then(CommandManager.argument("jail_name", StringArgumentType.word())
+					.suggests(JAIL_NAME_SUGGESTIONS)
+					.then(CommandManager.argument("time", IntegerArgumentType.integer(1))
+						.then(CommandManager.argument("reason", StringArgumentType.greedyString())
+							.executes(JailCommand::jailPlayerToSpecificJail)))))
 			
 			// /jail set <name>
 			.then(CommandManager.literal("set")
@@ -76,17 +82,47 @@ public class JailCommand {
 	}
 	
 	private static int jailPlayer(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-		ServerCommandSource source = context.getSource();
+		ServerPlayerEntity target = EntityArgumentType.getPlayer(context, "player");
+		int time = IntegerArgumentType.getInteger(context, "time");
+		String reason = StringArgumentType.getString(context, "reason");
 		
+		// Get first available jail
+		JailData jailData = OldSchoolJailMod.getJailData();
+		Jail jail = jailData.getAllJails().entrySet().stream()
+			.findFirst()
+			.map(e -> jailData.getJail(e.getKey()))
+			.orElse(null);
+		
+		if (jail == null) {
+			context.getSource().sendError(Text.literal("§cNo jails have been set! Use /jail set <name> first."));
+			return 0;
+		}
+		
+		return executeJail(context.getSource(), target, time, jail.getName(), reason);
+	}
+	
+	private static int jailPlayerToSpecificJail(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+		ServerPlayerEntity target = EntityArgumentType.getPlayer(context, "player");
+		int time = IntegerArgumentType.getInteger(context, "time");
+		String jailName = StringArgumentType.getString(context, "jail_name");
+		String reason = StringArgumentType.getString(context, "reason");
+		
+		// Check if jail exists
+		JailData jailData = OldSchoolJailMod.getJailData();
+		if (!jailData.hasJail(jailName)) {
+			context.getSource().sendError(Text.literal("§cJail '" + jailName + "' doesn't exist!"));
+			return 0;
+		}
+		
+		return executeJail(context.getSource(), target, time, jailName, reason);
+	}
+	
+	private static int executeJail(ServerCommandSource source, ServerPlayerEntity target, int time, String jailName, String reason) throws CommandSyntaxException {
 		// Check permission
 		if (!PermissionUtil.hasPermission(source, PermissionUtil.JAIL_PLAYER)) {
 			source.sendError(Text.literal("§cYou don't have permission to jail players!"));
 			return 0;
 		}
-		
-		ServerPlayerEntity target = EntityArgumentType.getPlayer(context, "player");
-		int time = IntegerArgumentType.getInteger(context, "time");
-		String reason = StringArgumentType.getString(context, "reason");
 		
 		// Check if target is immune
 		if (PermissionUtil.isImmune(target)) {
@@ -107,16 +143,19 @@ public class JailCommand {
 		JailData jailData = OldSchoolJailMod.getJailData();
 		JailedPlayersData jailedData = OldSchoolJailMod.getJailedPlayersData();
 		
-		// Get a random jail or first available jail
-		Jail jail = jailData.getAllJails().entrySet().stream()
-			.findFirst()
-			.map(e -> jailData.getJail(e.getKey()))
-			.orElse(null);
-		
+		Jail jail = jailData.getJail(jailName);
 		if (jail == null) {
-			source.sendError(Text.literal("§cNo jails have been set! Use /jail set <name> first."));
+			source.sendError(Text.literal("§cJail '" + jailName + "' doesn't exist!"));
 			return 0;
 		}
+		
+		// Capture original location
+		double origX = target.getX();
+		double origY = target.getY();
+		double origZ = target.getZ();
+		float origYaw = target.getYaw();
+		float origPitch = target.getPitch();
+		String origWorld = target.getWorld().getRegistryKey().getValue().toString();
 		
 		// Jail the player
 		long releaseTime = System.currentTimeMillis() + (timeInSeconds * 1000);
@@ -127,7 +166,9 @@ public class JailCommand {
 			jail.getName(),
 			releaseTime,
 			reason,
-			jailerName
+			jailerName,
+			origX, origY, origZ,
+			origYaw, origPitch, origWorld
 		);
 		
 		jailedData.jailPlayer(jailedPlayer);
@@ -143,7 +184,7 @@ public class JailCommand {
 		
 		target.sendMessage(Text.literal(jailMsg));
 		source.sendFeedback(() -> Text.literal("§aJailed " + target.getName().getString() + 
-			" for " + formatTime(timeInSeconds) + "!"), true);
+			" in '" + jail.getName() + "' for " + formatTime(timeInSeconds) + "!"), true);
 		
 		return 1;
 	}
@@ -211,14 +252,15 @@ public class JailCommand {
 			return 0;
 		}
 		
-		// Release players in this jail
+		// Release players in this jail and teleport them back
 		JailedPlayersData jailedData = OldSchoolJailMod.getJailedPlayersData();
 		for (JailedPlayer jp : jailedData.getPlayersInJail(name)) {
-			jailedData.releasePlayer(jp.getPlayerUuid());
 			ServerPlayerEntity player = source.getServer().getPlayerManager().getPlayer(jp.getPlayerUuid());
 			if (player != null) {
+				jailedData.teleportToOriginalLocation(player, jp, source.getServer());
 				player.sendMessage(Text.literal("§aYou have been released because the jail was deleted."));
 			}
+			jailedData.releasePlayer(jp.getPlayerUuid());
 		}
 		
 		jailData.removeJail(name);
@@ -243,7 +285,16 @@ public class JailCommand {
 			return 0;
 		}
 		
+		// Get jailed player data before releasing
+		JailedPlayer jailedPlayer = jailedData.getJailedPlayer(target.getUuid());
+		
+		// Release and teleport back
 		jailedData.releasePlayer(target.getUuid());
+		
+		if (jailedPlayer != null) {
+			jailedData.teleportToOriginalLocation(target, jailedPlayer, source.getServer());
+		}
+		
 		target.sendMessage(Text.literal(OldSchoolJailMod.getConfig().releaseMessage));
 		source.sendFeedback(() -> Text.literal("§aReleased " + target.getName().getString() + " from jail."), true);
 		

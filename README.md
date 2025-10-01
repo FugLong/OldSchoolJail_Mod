@@ -14,16 +14,22 @@ A classic jail mod for Minecraft Fabric servers (1.21.8+) - just like the good o
   - Teleport or escape (automatic teleport back to jail)
 - **Configurable**: Extensive config file for customization
 - **Data Persistence**: All jails and jailed players are saved and restored on server restart
-- **Auto-Release**: Players are automatically released when their sentence expires
+- **Auto-Release**: Players are automatically released when their sentence expires and teleported back
+- **Original Location Tracking**: Players are teleported back to their original location upon release
+- **Logout/Login Handling**: Players remain jailed across logout/login and are auto-released if sentence expired offline
+- **Multiple Jails**: Create multiple jails and choose which one to send players to
 
 ## Commands
 
 ### Main Commands
-- `/jail <player> <time> <reason>` - Jail a player
+- `/jail <player> <time> <reason>` - Jail a player in the first available jail
   - Time is based on config setting (default: minutes)
   - Example: `/jail Steve 30 Griefing the spawn`
 
-- `/jail release <player>` - Release a player from jail early
+- `/jail <player> <jail_name> <time> <reason>` - Jail a player in a specific jail
+  - Example: `/jail Steve spawn 30 Being annoying`
+
+- `/jail release <player>` - Release a player from jail early and teleport them back to where they were
 
 - `/jail time` - Check remaining jail time (available to jailed players)
 

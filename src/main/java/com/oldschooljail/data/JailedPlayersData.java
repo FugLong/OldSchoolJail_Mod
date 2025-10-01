@@ -75,11 +75,15 @@ public class JailedPlayersData {
 			
 			for (UUID uuid : toRelease) {
 				server.execute(() -> {
-					ServerPlayerEntity player = server.getPlayerManager().getPlayer(uuid);
-					if (player != null) {
-						player.sendMessage(Text.literal(OldSchoolJailMod.getConfig().jailExpiredMessage));
+					JailedPlayer jp = getJailedPlayer(uuid);
+					if (jp != null) {
+						ServerPlayerEntity player = server.getPlayerManager().getPlayer(uuid);
+						if (player != null) {
+							player.sendMessage(Text.literal(OldSchoolJailMod.getConfig().jailExpiredMessage));
+							teleportToOriginalLocation(player, jp, server);
+						}
+						releasePlayer(uuid);
 					}
-					releasePlayer(uuid);
 				});
 			}
 		}, 1, 1, TimeUnit.SECONDS);
@@ -91,6 +95,12 @@ public class JailedPlayersData {
 		entry.releaseTime = jailedPlayer.getReleaseTime();
 		entry.reason = jailedPlayer.getReason();
 		entry.jailedBy = jailedPlayer.getJailedBy();
+		entry.originalX = jailedPlayer.getOriginalX();
+		entry.originalY = jailedPlayer.getOriginalY();
+		entry.originalZ = jailedPlayer.getOriginalZ();
+		entry.originalYaw = jailedPlayer.getOriginalYaw();
+		entry.originalPitch = jailedPlayer.getOriginalPitch();
+		entry.originalWorld = jailedPlayer.getOriginalWorld();
 		jailedPlayers.put(jailedPlayer.getPlayerUuid(), entry);
 		save();
 	}
@@ -121,7 +131,34 @@ public class JailedPlayersData {
 	}
 	
 	private JailedPlayer toJailedPlayer(UUID uuid, JailedPlayerEntry entry) {
-		return new JailedPlayer(uuid, entry.jailName, entry.releaseTime, entry.reason, entry.jailedBy);
+		return new JailedPlayer(uuid, entry.jailName, entry.releaseTime, entry.reason, entry.jailedBy,
+			entry.originalX, entry.originalY, entry.originalZ, 
+			entry.originalYaw, entry.originalPitch, entry.originalWorld);
+	}
+	
+	public void teleportToOriginalLocation(ServerPlayerEntity player, JailedPlayer jailedPlayer, MinecraftServer server) {
+		try {
+			net.minecraft.registry.RegistryKey<net.minecraft.world.World> worldKey = net.minecraft.registry.RegistryKey.of(
+				net.minecraft.registry.RegistryKeys.WORLD,
+				net.minecraft.util.Identifier.of(jailedPlayer.getOriginalWorld())
+			);
+			
+			net.minecraft.server.world.ServerWorld world = server.getWorld(worldKey);
+			if (world == null) {
+				world = server.getOverworld();
+			}
+			
+			player.teleport(world, 
+				jailedPlayer.getOriginalX(), 
+				jailedPlayer.getOriginalY(), 
+				jailedPlayer.getOriginalZ(), 
+				java.util.Set.of(),
+				jailedPlayer.getOriginalYaw(), 
+				jailedPlayer.getOriginalPitch(),
+				true);
+		} catch (Exception e) {
+			OldSchoolJailMod.LOGGER.error("Failed to teleport player to original location", e);
+		}
 	}
 	
 	public void shutdown() {
@@ -136,6 +173,12 @@ public class JailedPlayersData {
 		public long releaseTime;
 		public String reason;
 		public String jailedBy;
+		public double originalX;
+		public double originalY;
+		public double originalZ;
+		public float originalYaw;
+		public float originalPitch;
+		public String originalWorld;
 	}
 }
 

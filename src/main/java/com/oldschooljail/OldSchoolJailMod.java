@@ -4,6 +4,7 @@ import com.oldschooljail.command.JailCommand;
 import com.oldschooljail.config.JailConfig;
 import com.oldschooljail.data.JailData;
 import com.oldschooljail.data.JailedPlayersData;
+import com.oldschooljail.event.PlayerEventHandler;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -29,6 +30,9 @@ public class OldSchoolJailMod implements ModInitializer {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
 			JailCommand.register(dispatcher);
 		});
+		
+		// Register player events
+		PlayerEventHandler.register();
 		
 		// Server lifecycle events
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
