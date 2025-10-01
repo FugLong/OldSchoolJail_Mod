@@ -58,8 +58,8 @@ public class PlayerEventHandler {
 				world = server.getOverworld();
 			}
 			
-			net.minecraft.util.math.BlockPos pos = jail.getPosition();
-			player.teleport(world, pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, java.util.Set.of(), 0, 0, true);
+			// Use exact position and rotation from jail
+			player.teleport(world, jail.getX(), jail.getY(), jail.getZ(), java.util.Set.of(), jail.getYaw(), jail.getPitch(), true);
 		} catch (Exception e) {
 			OldSchoolJailMod.LOGGER.error("Failed to teleport player to jail", e);
 		}

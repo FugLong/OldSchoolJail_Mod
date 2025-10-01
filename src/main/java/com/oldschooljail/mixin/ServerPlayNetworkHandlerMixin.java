@@ -8,7 +8,6 @@ import com.oldschooljail.model.JailedPlayer;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
-import net.minecraft.util.math.BlockPos;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -44,24 +43,23 @@ public class ServerPlayNetworkHandlerMixin {
 		}
 		
 		// Check if player is too far from jail (more than 50 blocks)
-		BlockPos jailPos = jail.getPosition();
 		net.minecraft.util.math.Vec3d jailPosVec = new net.minecraft.util.math.Vec3d(
-			jailPos.getX() + 0.5,
-			jailPos.getY(),
-			jailPos.getZ() + 0.5
+			jail.getX(),
+			jail.getY(),
+			jail.getZ()
 		);
 		double distance = player.getPos().distanceTo(jailPosVec);
 		
 		if (distance > 50) {
-			// Teleport back to jail
+			// Teleport back to jail with exact position and rotation
 			player.teleport(
 				player.getWorld().getServer().getWorld(player.getWorld().getRegistryKey()),
-				jailPos.getX() + 0.5,
-				jailPos.getY(),
-				jailPos.getZ() + 0.5,
+				jail.getX(),
+				jail.getY(),
+				jail.getZ(),
 				java.util.Set.of(),
-				player.getYaw(),
-				player.getPitch(),
+				jail.getYaw(),
+				jail.getPitch(),
 				true
 			);
 			player.sendMessage(Text.literal("§cYou cannot escape from jail!"), true);

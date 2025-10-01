@@ -60,9 +60,11 @@ public class JailData {
 	
 	public void addJail(Jail jail) {
 		JailEntry entry = new JailEntry();
-		entry.x = jail.getPosition().getX();
-		entry.y = jail.getPosition().getY();
-		entry.z = jail.getPosition().getZ();
+		entry.x = jail.getX();
+		entry.y = jail.getY();
+		entry.z = jail.getZ();
+		entry.yaw = jail.getYaw();
+		entry.pitch = jail.getPitch();
 		entry.worldId = jail.getWorldId();
 		jails.put(jail.getName().toLowerCase(), entry);
 		save();
@@ -71,7 +73,7 @@ public class JailData {
 	public Jail getJail(String name) {
 		JailEntry entry = jails.get(name.toLowerCase());
 		if (entry == null) return null;
-		return new Jail(name, new BlockPos(entry.x, entry.y, entry.z), entry.worldId);
+		return new Jail(name, entry.x, entry.y, entry.z, entry.yaw, entry.pitch, entry.worldId);
 	}
 	
 	public boolean hasJail(String name) {
@@ -89,9 +91,11 @@ public class JailData {
 	
 	// Inner class for JSON serialization
 	public static class JailEntry {
-		public int x;
-		public int y;
-		public int z;
+		public double x;
+		public double y;
+		public double z;
+		public float yaw;
+		public float pitch;
 		public String worldId;
 	}
 }

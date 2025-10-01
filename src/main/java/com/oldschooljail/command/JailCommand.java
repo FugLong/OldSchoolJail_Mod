@@ -200,15 +200,20 @@ public class JailCommand {
 		ServerPlayerEntity player = source.getPlayerOrThrow();
 		String name = StringArgumentType.getString(context, "name");
 		
-		BlockPos pos = player.getBlockPos();
+		// Capture exact position and rotation
+		double x = player.getX();
+		double y = player.getY();
+		double z = player.getZ();
+		float yaw = player.getYaw();
+		float pitch = player.getPitch();
 		RegistryKey<World> worldKey = player.getWorld().getRegistryKey();
 		String worldId = worldKey.getValue().toString();
 		
-		Jail jail = new Jail(name, pos, worldId);
+		Jail jail = new Jail(name, x, y, z, yaw, pitch, worldId);
 		OldSchoolJailMod.getJailData().addJail(jail);
 		
 		source.sendFeedback(() -> Text.literal("§aJail '" + name + "' set at " + 
-			pos.getX() + ", " + pos.getY() + ", " + pos.getZ()), true);
+			String.format("%.2f, %.2f, %.2f", x, y, z)), true);
 		
 		return 1;
 	}
@@ -224,10 +229,17 @@ public class JailCommand {
 		String name = StringArgumentType.getString(context, "name");
 		BlockPos pos = BlockPosArgumentType.getBlockPos(context, "pos");
 		
+		// When setting by coordinates, use block center and default rotation
+		double x = pos.getX() + 0.5;
+		double y = pos.getY();
+		double z = pos.getZ() + 0.5;
+		float yaw = 0;
+		float pitch = 0;
+		
 		RegistryKey<World> worldKey = source.getWorld().getRegistryKey();
 		String worldId = worldKey.getValue().toString();
 		
-		Jail jail = new Jail(name, pos, worldId);
+		Jail jail = new Jail(name, x, y, z, yaw, pitch, worldId);
 		OldSchoolJailMod.getJailData().addJail(jail);
 		
 		source.sendFeedback(() -> Text.literal("§aJail '" + name + "' set at " + 
@@ -334,8 +346,8 @@ public class JailCommand {
 			world = server.getOverworld();
 		}
 		
-		BlockPos pos = jail.getPosition();
-		player.teleport(world, pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, Set.of(), 0, 0, true);
+		// Use exact position and rotation from jail
+		player.teleport(world, jail.getX(), jail.getY(), jail.getZ(), Set.of(), jail.getYaw(), jail.getPitch(), true);
 	}
 	
 	private static String formatTime(long seconds) {
