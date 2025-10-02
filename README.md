@@ -122,4 +122,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-A jail mod for Fabric servers, just like the good old days!
