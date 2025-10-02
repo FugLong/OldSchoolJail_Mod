@@ -6,7 +6,8 @@
 	"mixins": [
 		"ServerPlayerInteractionManagerMixin",
 		"CommandManagerMixin",
-		"ServerPlayNetworkHandlerMixin"
+		"ServerPlayNetworkHandlerMixin",
+		"ServerPlayerEntityAfkMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

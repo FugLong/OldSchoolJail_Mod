@@ -22,6 +22,7 @@ A classic jail mod for Minecraft Fabric servers (1.21.8+) - just like the good o
 - **Original Location Tracking**: Players are teleported back to their original location upon release
 - **Logout/Login Handling**: Players remain jailed across logout/login and are auto-released if sentence expired offline
 - **Multiple Jails**: Create multiple jails and choose which one to send players to
+- **Essential Commands Compatible**: Fully compatible with [Essential Commands](https://modrinth.com/mod/essential-commands) - the recommended companion mod
 
 ## Commands
 
@@ -89,7 +90,8 @@ All settings include helpful comments in the config file explaining what they do
 2. Place the JAR file in your server's `mods` folder
 3. Ensure you have Fabric API installed
 4. (Optional) Install a permissions plugin like LuckPerms for advanced permission control
-5. Start your server
+5. (Recommended) Install [Essential Commands](https://modrinth.com/mod/essential-commands) for full oldschool experience
+6. Start your server
 
 ## Building from Source
 
@@ -107,6 +109,7 @@ The built JAR will be in `build/libs/`
 - **Mod Loader**: Fabric
 - **Required**: Fabric API
 - **Recommended**: LuckPerms or other Fabric Permissions API compatible plugin
+- **AFK Compatibility**: Fully compatible with [Essential Commands](https://modrinth.com/mod/essential-commands) - the recommended companion mod
 
 ## License
 
