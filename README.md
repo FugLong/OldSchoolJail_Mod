@@ -90,7 +90,7 @@ All settings include helpful comments in the config file explaining what they do
 
 ## Installation
 
-1. Download the latest release from the [Releases](https://github.com/yourusername/OldSchoolJail_Mod/releases) page
+1. Download the latest oldschooljail-[version].jar release from the [Releases](https://github.com/yourusername/OldSchoolJail_Mod/releases) page
 2. Place the JAR file in your server's `mods` folder
 3. Ensure you have Fabric API installed
 4. (Optional) Install a permissions plugin like LuckPerms for advanced permission control
