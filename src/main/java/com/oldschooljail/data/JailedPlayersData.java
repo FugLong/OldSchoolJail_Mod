@@ -134,6 +134,14 @@ public class JailedPlayersData {
 		return players;
 	}
 	
+	public Collection<JailedPlayer> getAllJailedPlayers() {
+		List<JailedPlayer> players = new ArrayList<>();
+		for (Map.Entry<UUID, JailedPlayerEntry> entry : jailedPlayers.entrySet()) {
+			players.add(toJailedPlayer(entry.getKey(), entry.getValue()));
+		}
+		return players;
+	}
+	
 	private JailedPlayer toJailedPlayer(UUID uuid, JailedPlayerEntry entry) {
 		return new JailedPlayer(uuid, entry.jailName, entry.releaseTime, entry.reason, entry.jailedBy,
 			entry.originalX, entry.originalY, entry.originalZ, 

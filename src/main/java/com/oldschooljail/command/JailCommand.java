@@ -81,6 +81,10 @@ public class JailCommand {
 				// /jail time <player>
 				.then(CommandManager.argument("player", EntityArgumentType.player())
 					.executes(JailCommand::checkPlayerJailTime)))
+			
+			// /jail list
+			.then(CommandManager.literal("list")
+				.executes(JailCommand::listJailedPlayers))
 		);
 	}
 	
@@ -367,6 +371,56 @@ public class JailCommand {
 		
 		long remaining = jailed.getRemainingTimeSeconds();
 		source.sendFeedback(() -> Text.literal("§e" + target.getName().getString() + " will be released in: " + formatTime(remaining)), false);
+		
+		return 1;
+	}
+	
+	private static int listJailedPlayers(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+		ServerCommandSource source = context.getSource();
+		
+		// Check permission - only admins can list jailed players
+		if (!PermissionUtil.hasPermission(source, PermissionUtil.JAIL_PLAYER)) {
+			source.sendError(Text.literal("§cYou don't have permission to list jailed players!"));
+			return 0;
+		}
+		
+		JailedPlayersData jailedData = OldSchoolJailMod.getJailedPlayersData();
+		Collection<JailedPlayer> jailedPlayers = jailedData.getAllJailedPlayers();
+		
+		if (jailedPlayers.isEmpty()) {
+			source.sendFeedback(() -> Text.literal("§aNo players are currently jailed."), false);
+			return 1;
+		}
+		
+		source.sendFeedback(() -> Text.literal("§e=== Currently Jailed Players ==="), false);
+		
+		for (JailedPlayer jailedPlayer : jailedPlayers) {
+			// Try to get player name from server
+			final MinecraftServer server = source.getServer();
+			final String playerName;
+			
+			if (server != null) {
+				ServerPlayerEntity player = server.getPlayerManager().getPlayer(jailedPlayer.getPlayerUuid());
+				if (player != null) {
+					playerName = player.getName().getString();
+				} else {
+					// Player is offline, use UUID as fallback
+					playerName = jailedPlayer.getPlayerUuid().toString().substring(0, 8) + "...";
+				}
+			} else {
+				playerName = "Unknown";
+			}
+			
+			final long remaining = jailedPlayer.getRemainingTimeSeconds();
+			final String status = server != null && server.getPlayerManager().getPlayer(jailedPlayer.getPlayerUuid()) != null ? "§aOnline" : "§7Offline";
+			
+			source.sendFeedback(() -> Text.literal("§e" + playerName + " §7- Jail: §f" + jailedPlayer.getJailName() + 
+				" §7- Time: §f" + formatTime(remaining) + " §7- Status: " + status), false);
+			source.sendFeedback(() -> Text.literal("§7  Reason: §f" + jailedPlayer.getReason() + 
+				" §7- Jailed by: §f" + jailedPlayer.getJailedBy()), false);
+		}
+		
+		source.sendFeedback(() -> Text.literal("§eTotal: §f" + jailedPlayers.size() + " §eplayers jailed"), false);
 		
 		return 1;
 	}

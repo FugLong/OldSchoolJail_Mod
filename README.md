@@ -38,6 +38,7 @@ A classic jail mod for Minecraft Fabric servers (1.21.8+) - just like the good o
 
 - `/jail time` - Check your own remaining jail time (available to jailed players)
 - `/jail time <player>` - Check any player's jail time (admin only - requires `oldschooljail.jail` permission)
+- `/jail list` - List all currently jailed players with details (admin only - requires `oldschooljail.jail` permission)
 
 ### Admin Commands
 - `/jail set <jail_name>` - Set a jail at your current location
