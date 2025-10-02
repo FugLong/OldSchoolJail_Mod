@@ -22,9 +22,11 @@ public class PlayerEventHandler {
 			
 			if (jailedPlayer != null) {
 				if (jailedPlayer.shouldBeReleased()) {
-					// Sentence expired while offline - release and teleport back
+					// Sentence expired while offline - release and teleport back (if enabled)
 					player.sendMessage(Text.literal(OldSchoolJailMod.getConfig().jailExpiredMessage));
-					jailedData.teleportToOriginalLocation(player, jailedPlayer, server);
+					if (OldSchoolJailMod.getConfig().teleportBackOnRelease) {
+						jailedData.teleportToOriginalLocation(player, jailedPlayer, server);
+					}
 					jailedData.releasePlayer(player.getUuid());
 				} else {
 					// Still jailed - teleport to jail
@@ -38,7 +40,9 @@ public class PlayerEventHandler {
 					} else {
 						// Jail was deleted while offline - release them
 						player.sendMessage(Text.literal("§aYour jail was removed. You are free!"));
-						jailedData.teleportToOriginalLocation(player, jailedPlayer, server);
+						if (OldSchoolJailMod.getConfig().teleportBackOnRelease) {
+							jailedData.teleportToOriginalLocation(player, jailedPlayer, server);
+						}
 						jailedData.releasePlayer(player.getUuid());
 					}
 				}

@@ -24,6 +24,7 @@ public class JailConfig {
 	public boolean blockBlockBreaking = true;
 	public boolean blockBlockPlacing = true;
 	public boolean blockInteraction = true;
+	public boolean teleportBackOnRelease = true;
 	public String releaseMessage = "§aYou have been released from jail!";
 	public String jailExpiredMessage = "§aYour jail sentence has expired. You are now free!";
 	
@@ -46,6 +47,7 @@ public class JailConfig {
 				config.blockBlockBreaking = fileConfig.getOrElse("restrictions.block_block_breaking", true);
 				config.blockBlockPlacing = fileConfig.getOrElse("restrictions.block_block_placing", true);
 				config.blockInteraction = fileConfig.getOrElse("restrictions.block_interaction", true);
+				config.teleportBackOnRelease = fileConfig.getOrElse("release.teleport_back_on_release", true);
 				
 				config.releaseMessage = fileConfig.getOrElse("messages.release", "§aYou have been released from jail!");
 				config.jailExpiredMessage = fileConfig.getOrElse("messages.jail_expired", "§aYour jail sentence has expired. You are now free!");
@@ -120,6 +122,16 @@ public class JailConfig {
 			config.setComment("restrictions.block_interaction",
 				" Prevent interacting with blocks (buttons, levers, doors, etc.) while jailed\n" +
 				" Recommended: true");
+			
+			// Release settings
+			config.setComment("release",
+				" Settings for when players are released from jail");
+			
+			config.set("release.teleport_back_on_release", teleportBackOnRelease);
+			config.setComment("release.teleport_back_on_release",
+				" Teleport players back to their original location when released\n" +
+				" If false, players must walk out of jail manually\n" +
+				" Recommended: true (prevents confusion about where they are)");
 			
 			// Message settings
 			config.setComment("messages",

@@ -18,8 +18,8 @@ A classic jail mod for Minecraft Fabric servers (1.21.8+) - just like the good o
   - Teleport or escape (automatic teleport back to jail)
 - **Configurable**: Extensive config file for customization
 - **Data Persistence**: All jails and jailed players are saved and restored on server restart
-- **Auto-Release**: Players are automatically released when their sentence expires and teleported back
-- **Original Location Tracking**: Players are teleported back to their original location upon release
+- **Auto-Release**: Players are automatically released when their sentence expires
+- **Original Location Tracking**: Players are teleported back to their original location upon release (configurable)
 - **Logout/Login Handling**: Players remain jailed across logout/login and are auto-released if sentence expired offline
 - **Multiple Jails**: Create multiple jails and choose which one to send players to
 - **Essential Commands Compatible**: Fully compatible with [Essential Commands](https://modrinth.com/mod/essential-commands) - the recommended companion mod
@@ -34,7 +34,7 @@ A classic jail mod for Minecraft Fabric servers (1.21.8+) - just like the good o
 - `/jail <player> <jail_name> <time> <reason>` - Jail a player in a specific jail
   - Example: `/jail Steve spawn 30 Being annoying`
 
-- `/jail release <player>` - Release a player from jail early and teleport them back to where they were
+- `/jail release <player>` - Release a player from jail early (teleports back to original location if enabled in config)
 
 - `/jail time` - Check your own remaining jail time (available to jailed players)
 - `/jail time <player>` - Check any player's jail time (admin only - requires `oldschooljail.jail` permission)
@@ -77,6 +77,9 @@ The TOML file includes detailed comments for each option. Here's what you can co
 - `block_block_breaking` - Prevent breaking blocks
 - `block_block_placing` - Prevent placing blocks  
 - `block_interaction` - Prevent interacting with blocks
+
+**Release Settings:**
+- `teleport_back_on_release` - Teleport players back to original location when released (if false, players must walk out manually)
 
 **Messages:**
 - `release` - Message on manual release

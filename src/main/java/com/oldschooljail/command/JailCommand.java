@@ -278,12 +278,14 @@ public class JailCommand {
 			return 0;
 		}
 		
-		// Release players in this jail and teleport them back
+		// Release players in this jail and teleport them back (if enabled)
 		JailedPlayersData jailedData = OldSchoolJailMod.getJailedPlayersData();
 		for (JailedPlayer jp : jailedData.getPlayersInJail(name)) {
 			ServerPlayerEntity player = source.getServer().getPlayerManager().getPlayer(jp.getPlayerUuid());
 			if (player != null) {
-				jailedData.teleportToOriginalLocation(player, jp, source.getServer());
+				if (OldSchoolJailMod.getConfig().teleportBackOnRelease) {
+					jailedData.teleportToOriginalLocation(player, jp, source.getServer());
+				}
 				player.sendMessage(Text.literal("§aYou have been released because the jail was deleted."));
 			}
 			jailedData.releasePlayer(jp.getPlayerUuid());
@@ -314,10 +316,10 @@ public class JailCommand {
 		// Get jailed player data before releasing
 		JailedPlayer jailedPlayer = jailedData.getJailedPlayer(target.getUuid());
 		
-		// Release and teleport back
+		// Release and teleport back (if enabled)
 		jailedData.releasePlayer(target.getUuid());
 		
-		if (jailedPlayer != null) {
+		if (jailedPlayer != null && OldSchoolJailMod.getConfig().teleportBackOnRelease) {
 			jailedData.teleportToOriginalLocation(target, jailedPlayer, source.getServer());
 		}
 		
