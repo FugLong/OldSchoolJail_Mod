@@ -33,9 +33,9 @@ dependencies {
 	// Fabric API
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 	
-	// Fabric Permissions API (for LuckPerms integration)
+	// Fabric Permissions API (for LuckPerms integration) - Optional dependency
 	modImplementation "me.lucko:fabric-permissions-api:0.3.1"
-	include "me.lucko:fabric-permissions-api:0.3.1"
+	// Don't include it - let it be optional
 	
 	// TOML parser for config files
 	implementation "com.electronwill.night-config:toml:3.6.7"

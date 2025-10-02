@@ -58,7 +58,7 @@ The mod uses the Fabric Permissions API and supports any permissions plugin that
 - `oldschooljail.time` - Allows using `/jail time` (granted to all by default)
 - `oldschooljail.jail` - Also allows using `/jail time <player>` to check other players' jail time
 
-**Note**: If no permissions plugin is installed, the mod falls back to OP level 2 for admin commands.
+**Note**: If no permissions plugin is installed, the mod automatically falls back to OP level 2 for admin commands. The mod works perfectly on vanilla servers without any permissions plugins!
 
 ## Configuration
 

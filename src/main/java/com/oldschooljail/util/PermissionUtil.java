@@ -1,6 +1,5 @@
 package com.oldschooljail.util;
 
-import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 
@@ -19,13 +18,23 @@ public class PermissionUtil {
 			return true;
 		}
 		
-		// Use Fabric Permissions API (works with LuckPerms, etc.)
-		// Falls back to OP level 2 if no permission plugin is installed
-		return Permissions.check(source, permission, 2);
+		// Try to use Fabric Permissions API if available
+		try {
+			return me.lucko.fabric.api.permissions.v0.Permissions.check(source, permission, 2);
+		} catch (NoClassDefFoundError | Exception e) {
+			// Permissions API not available, fall back to OP level 2
+			return source.hasPermissionLevel(2);
+		}
 	}
 	
 	public static boolean hasPermission(ServerPlayerEntity player, String permission) {
-		return Permissions.check(player, permission, 2);
+		// Try to use Fabric Permissions API if available
+		try {
+			return me.lucko.fabric.api.permissions.v0.Permissions.check(player, permission, 2);
+		} catch (NoClassDefFoundError | Exception e) {
+			// Permissions API not available, fall back to OP level 2
+			return player.hasPermissionLevel(2);
+		}
 	}
 	
 	public static boolean isImmune(ServerPlayerEntity player) {
