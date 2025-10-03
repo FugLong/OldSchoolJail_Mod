@@ -37,7 +37,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          name: "v${{ steps.get_version.outputs.VERSION }} - Minecraft ${{ steps.get_mc_version.outputs.MC_VERSION }}"
+          name: "v${{ steps.get_version.outputs.VERSION }} - Minecraft 1.21.x"
           files: |
             build/libs/*.jar
             !build/libs/*-sources.jar
