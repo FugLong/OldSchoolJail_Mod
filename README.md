@@ -1,6 +1,6 @@
 # Old School Jail Mod
 
-A classic jail mod for Minecraft Fabric servers (1.21.8+) - just like the good old days!
+A classic jail mod for Minecraft Fabric servers (1.21.x) - just like the good old days!
 
 <p align="center">
   <img src="OldSchoolJailLogo.jpeg" alt="Old School Jail Logo" width="400">
@@ -109,7 +109,7 @@ The built JAR will be in `build/libs/`
 
 ## Compatibility
 
-- **Minecraft Version**: 1.21.8+
+- **Minecraft Version**: 1.21-1.21.9
 - **Mod Loader**: Fabric
 - **Required**: Fabric API
 - **Recommended**: LuckPerms or other Fabric Permissions API compatible plugin
