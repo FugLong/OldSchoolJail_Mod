@@ -427,7 +427,7 @@ public class JailCommand {
 	
 	private static void teleportToJail(ServerPlayerEntity player, Jail jail) {
 		// Get the world
-		MinecraftServer server = player.getServer();
+		MinecraftServer server = player.getWorld().getServer();
 		if (server == null) return;
 		
 		RegistryKey<World> worldKey = RegistryKey.of(

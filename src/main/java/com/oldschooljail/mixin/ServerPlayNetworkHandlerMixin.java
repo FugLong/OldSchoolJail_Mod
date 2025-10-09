@@ -48,7 +48,12 @@ public class ServerPlayNetworkHandlerMixin {
 			jail.getY(),
 			jail.getZ()
 		);
-		double distance = player.getPos().distanceTo(jailPosVec);
+		net.minecraft.util.math.Vec3d playerPos = new net.minecraft.util.math.Vec3d(
+			player.getX(),
+			player.getY(),
+			player.getZ()
+		);
+		double distance = playerPos.distanceTo(jailPosVec);
 		
 		if (distance > 50) {
 			// Teleport back to jail with exact position and rotation
