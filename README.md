@@ -109,7 +109,7 @@ The built JAR will be in `build/libs/`
 
 ## Compatibility
 
-- **Minecraft Version**: 1.21-1.21.9
+- **Minecraft Version**: 1.21-1.21.10
 - **Mod Loader**: Fabric
 - **Required**: Fabric API
 - **Recommended**: LuckPerms or other Fabric Permissions API compatible plugin
