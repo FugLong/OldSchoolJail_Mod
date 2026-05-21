@@ -152,6 +152,10 @@ public class JailConfig {
 		}
 	}
 	
+	public boolean hasMaxSentenceLimit() {
+		return maxSentenceSeconds >= 0;
+	}
+
 	public long convertToSeconds(long time) {
 		return switch (inputTimeUnit) {
 			case SECONDS -> time;

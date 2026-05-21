@@ -5,12 +5,9 @@
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
 		"ServerPlayerInteractionManagerMixin",
-		"CommandManagerMixin",
-		"ServerPlayNetworkHandlerMixin",
-		"ServerPlayerEntityAfkMixin"
+		"CommandManagerMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
 	}
 }
-

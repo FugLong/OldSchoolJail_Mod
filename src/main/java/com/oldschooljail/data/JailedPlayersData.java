@@ -4,7 +4,9 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.oldschooljail.OldSchoolJailMod;
+import com.oldschooljail.model.Jail;
 import com.oldschooljail.model.JailedPlayer;
+import com.oldschooljail.util.TeleportUtil;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
@@ -13,16 +15,17 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class JailedPlayersData {
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 	private final File dataFile;
-	private final Map<UUID, JailedPlayerEntry> jailedPlayers = new HashMap<>();
-	private ScheduledExecutorService releaseTimer;
+	private final Map<UUID, JailedPlayerEntry> jailedPlayers = new ConcurrentHashMap<>();
 	
 	private JailedPlayersData(File dataFile) {
 		this.dataFile = dataFile;
@@ -61,38 +64,74 @@ public class JailedPlayersData {
 		}
 	}
 	
-	public void startReleaseTimer(MinecraftServer server) {
-		releaseTimer = Executors.newSingleThreadScheduledExecutor();
-		releaseTimer.scheduleAtFixedRate(() -> {
-			List<UUID> toRelease = new ArrayList<>();
-			
-			for (Map.Entry<UUID, JailedPlayerEntry> entry : jailedPlayers.entrySet()) {
-				JailedPlayer jp = toJailedPlayer(entry.getKey(), entry.getValue());
-				if (jp.shouldBeReleased()) {
-					toRelease.add(entry.getKey());
-				}
-			}
-			
-			for (UUID uuid : toRelease) {
-				server.execute(() -> {
-					JailedPlayer jp = getJailedPlayer(uuid);
-					if (jp != null) {
-						ServerPlayerEntity player = server.getPlayerManager().getPlayer(uuid);
-						if (player != null) {
-							// Player is online - release them immediately
-							player.sendMessage(Text.literal(OldSchoolJailMod.getConfig().jailExpiredMessage));
-							if (OldSchoolJailMod.getConfig().teleportBackOnRelease) {
-								teleportToOriginalLocation(player, jp, server);
-							}
-							releasePlayer(uuid);
-						}
-						// If player is offline, don't release them yet - let PlayerEventHandler handle it when they rejoin
-					}
-				});
-			}
-		}, 1, 1, TimeUnit.SECONDS);
+	/** Server-thread tick (once per second): sentence expiry + escape prevention. */
+	public void tick(MinecraftServer server) {
+		if (server.getTicks() % 20 != 0) {
+			return;
+		}
+		tickExpiredReleases(server);
+		if (OldSchoolJailMod.getConfig().blockTeleportation) {
+			tickEscapePrevention(server);
+		}
 	}
-	
+
+	private void tickExpiredReleases(MinecraftServer server) {
+		List<UUID> toRelease = new ArrayList<>();
+
+		for (Map.Entry<UUID, JailedPlayerEntry> entry : jailedPlayers.entrySet()) {
+			JailedPlayer jp = toJailedPlayer(entry.getKey(), entry.getValue());
+			if (jp.shouldBeReleased()) {
+				toRelease.add(entry.getKey());
+			}
+		}
+
+		for (UUID uuid : toRelease) {
+			JailedPlayer jp = getJailedPlayer(uuid);
+			if (jp == null) {
+				continue;
+			}
+
+			ServerPlayerEntity player = server.getPlayerManager().getPlayer(uuid);
+			if (player != null) {
+				player.sendMessage(Text.literal(OldSchoolJailMod.getConfig().jailExpiredMessage));
+				if (OldSchoolJailMod.getConfig().teleportBackOnRelease) {
+					teleportToOriginalLocation(player, jp, server);
+				}
+				releasePlayer(uuid);
+			}
+			// Offline players stay in the map until they rejoin; PlayerEventHandler releases them then.
+		}
+	}
+
+	private void tickEscapePrevention(MinecraftServer server) {
+		JailData jailData = OldSchoolJailMod.getJailData();
+		if (jailData == null) {
+			return;
+		}
+
+		for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
+			if (!isJailed(player.getUuid())) {
+				continue;
+			}
+
+			JailedPlayer jailedPlayer = getJailedPlayer(player.getUuid());
+			Jail jail = jailData.getJail(jailedPlayer.getJailName());
+			if (jail == null) {
+				releasePlayer(player.getUuid());
+				continue;
+			}
+
+			String playerWorldId = com.oldschooljail.util.PlayerWorldUtil.getWorldId(player);
+			boolean wrongDimension = !jail.getWorldId().equals(playerWorldId);
+			double distanceSq = player.squaredDistanceTo(jail.getX(), jail.getY(), jail.getZ());
+
+			if (wrongDimension || distanceSq > 50 * 50) {
+				TeleportUtil.teleportToJail(player, jail, server);
+				player.sendMessage(Text.literal("§cYou cannot escape from jail!"), true);
+			}
+		}
+	}
+
 	public void jailPlayer(JailedPlayer jailedPlayer) {
 		JailedPlayerEntry entry = new JailedPlayerEntry();
 		entry.jailName = jailedPlayer.getJailName();
@@ -149,34 +188,16 @@ public class JailedPlayersData {
 	}
 	
 	public void teleportToOriginalLocation(ServerPlayerEntity player, JailedPlayer jailedPlayer, MinecraftServer server) {
-		try {
-			net.minecraft.registry.RegistryKey<net.minecraft.world.World> worldKey = net.minecraft.registry.RegistryKey.of(
-				net.minecraft.registry.RegistryKeys.WORLD,
-				net.minecraft.util.Identifier.of(jailedPlayer.getOriginalWorld())
-			);
-			
-			net.minecraft.server.world.ServerWorld world = server.getWorld(worldKey);
-			if (world == null) {
-				world = server.getOverworld();
-			}
-			
-			player.teleport(world, 
-				jailedPlayer.getOriginalX(), 
-				jailedPlayer.getOriginalY(), 
-				jailedPlayer.getOriginalZ(), 
-				java.util.Set.of(),
-				jailedPlayer.getOriginalYaw(), 
-				jailedPlayer.getOriginalPitch(),
-				true);
-		} catch (Exception e) {
-			OldSchoolJailMod.LOGGER.error("Failed to teleport player to original location", e);
-		}
-	}
-	
-	public void shutdown() {
-		if (releaseTimer != null) {
-			releaseTimer.shutdown();
-		}
+		com.oldschooljail.util.TeleportUtil.teleportToSavedLocation(
+			player,
+			server,
+			jailedPlayer.getOriginalX(),
+			jailedPlayer.getOriginalY(),
+			jailedPlayer.getOriginalZ(),
+			jailedPlayer.getOriginalYaw(),
+			jailedPlayer.getOriginalPitch(),
+			jailedPlayer.getOriginalWorld()
+		);
 	}
 	
 	// Inner class for JSON serialization

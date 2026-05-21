@@ -1,6 +1,6 @@
 # Old School Jail Mod
 
-A classic jail mod for Minecraft Fabric servers (1.21.x) - just like the good old days!
+A classic jail mod for Minecraft Fabric servers (1.21.2–1.21.11) - just like the good old days!
 
 <p align="center">
   <img src="OldSchoolJailLogo.jpeg" alt="Old School Jail Logo" width="400">
@@ -58,7 +58,7 @@ The mod uses the Fabric Permissions API and supports any permissions plugin that
 - `oldschooljail.time` - Allows using `/jail time` (granted to all by default)
 - `oldschooljail.jail` - Also allows using `/jail time <player>` to check other players' jail time
 
-**Note**: If no permissions plugin is installed, the mod automatically falls back to OP level 2 for admin commands. The mod works perfectly on vanilla servers without any permissions plugins!
+**Note**: If no permissions plugin is installed, the mod falls back to any server operator for admin commands. Works fine on vanilla servers without a permissions plugin.
 
 ## Configuration
 
@@ -70,7 +70,7 @@ The TOML file includes detailed comments for each option. Here's what you can co
 
 **Time Settings:**
 - `input_unit` - Time unit for commands (SECONDS, MINUTES, or HOURS)
-- `max_sentence_seconds` - Maximum sentence length in seconds
+- `max_sentence_seconds` - Maximum sentence length in seconds (set to `-1` for no limit)
 
 **Restrictions:**
 - `block_commands` - Block all commands except /jail time
@@ -109,11 +109,15 @@ The built JAR will be in `build/libs/`
 
 ## Compatibility
 
-- **Minecraft Version**: 1.21-1.21.10
+- **Minecraft Version**: 1.21.2 through 1.21.11 (one JAR for all supported patch releases)
 - **Mod Loader**: Fabric
 - **Required**: Fabric API
 - **Recommended**: LuckPerms or other Fabric Permissions API compatible plugin
 - **AFK Compatibility**: Fully compatible with [Essential Commands](https://modrinth.com/mod/essential-commands) - the recommended companion mod
+
+### Version support
+
+**Minecraft 1.21.2 through 1.21.11 only** (one JAR). Built against 1.21.11. Not compatible with 1.21, 1.21.1, or 1.22+.
 
 ## License
 

@@ -1,5 +1,5 @@
 plugins {
-	id 'fabric-loom' version '1.10.5'
+	id 'fabric-loom' version '1.13.6'
 	id 'maven-publish'
 }
 
@@ -33,9 +33,8 @@ dependencies {
 	// Fabric API
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 	
-	// Fabric Permissions API (for LuckPerms integration) - Optional dependency
-	modImplementation "me.lucko:fabric-permissions-api:0.3.1"
-	// Don't include it - let it be optional
+	// Fabric Permissions API - compile only; provided at runtime by LuckPerms
+	modCompileOnly "me.lucko:fabric-permissions-api:0.3.1"
 	
 	// TOML parser for config files
 	implementation "com.electronwill.night-config:toml:3.6.7"

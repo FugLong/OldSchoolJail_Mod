@@ -5,6 +5,7 @@ import com.oldschooljail.data.JailData;
 import com.oldschooljail.data.JailedPlayersData;
 import com.oldschooljail.model.Jail;
 import com.oldschooljail.model.JailedPlayer;
+import com.oldschooljail.util.TeleportUtil;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
@@ -34,7 +35,7 @@ public class PlayerEventHandler {
 					Jail jail = jailData.getJail(jailedPlayer.getJailName());
 					
 					if (jail != null) {
-						teleportToJail(player, jail, server);
+						TeleportUtil.teleportToJail(player, jail, server);
 						long remaining = jailedPlayer.getRemainingTimeSeconds();
 						player.sendMessage(Text.literal("§cYou are still jailed! Time remaining: " + formatTime(remaining)));
 					} else {
@@ -48,25 +49,6 @@ public class PlayerEventHandler {
 				}
 			}
 		});
-	}
-	
-	private static void teleportToJail(ServerPlayerEntity player, Jail jail, net.minecraft.server.MinecraftServer server) {
-		try {
-			net.minecraft.registry.RegistryKey<net.minecraft.world.World> worldKey = net.minecraft.registry.RegistryKey.of(
-				net.minecraft.registry.RegistryKeys.WORLD,
-				net.minecraft.util.Identifier.of(jail.getWorldId())
-			);
-			
-			net.minecraft.server.world.ServerWorld world = server.getWorld(worldKey);
-			if (world == null) {
-				world = server.getOverworld();
-			}
-			
-			// Use exact position and rotation from jail
-			player.teleport(world, jail.getX(), jail.getY(), jail.getZ(), java.util.Set.of(), jail.getYaw(), jail.getPitch(), true);
-		} catch (Exception e) {
-			OldSchoolJailMod.LOGGER.error("Failed to teleport player to jail", e);
-		}
 	}
 	
 	private static String formatTime(long seconds) {

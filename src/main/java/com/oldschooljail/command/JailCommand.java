@@ -13,6 +13,7 @@ import com.oldschooljail.data.JailedPlayersData;
 import com.oldschooljail.model.Jail;
 import com.oldschooljail.model.JailedPlayer;
 import com.oldschooljail.util.PermissionUtil;
+import com.oldschooljail.util.TeleportUtil;
 import net.minecraft.command.CommandSource;
 import net.minecraft.command.argument.BlockPosArgumentType;
 import net.minecraft.command.argument.EntityArgumentType;
@@ -26,7 +27,6 @@ import net.minecraft.registry.RegistryKey;
 import net.minecraft.world.World;
 
 import java.util.Collection;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 public class JailCommand {
@@ -156,10 +156,10 @@ public class JailCommand {
 		JailConfig config = OldSchoolJailMod.getConfig();
 		long timeInSeconds = config.convertToSeconds(time);
 		
-		// Check max sentence
-		if (timeInSeconds > config.maxSentenceSeconds) {
-			source.sendError(Text.literal("§cJail time exceeds maximum allowed sentence of " + 
-				config.maxSentenceSeconds + " seconds!"));
+		// Check max sentence (-1 in config = unlimited)
+		if (config.hasMaxSentenceLimit() && timeInSeconds > config.maxSentenceSeconds) {
+			source.sendError(Text.literal("§cJail time exceeds maximum allowed sentence of " +
+				formatTime(config.maxSentenceSeconds) + "!"));
 			return 0;
 		}
 		
@@ -177,7 +177,7 @@ public class JailCommand {
 		double origZ = target.getZ();
 		float origYaw = target.getYaw();
 		float origPitch = target.getPitch();
-		String origWorld = target.getWorld().getRegistryKey().getValue().toString();
+		String origWorld = com.oldschooljail.util.PlayerWorldUtil.getWorldId(target);
 		
 		// Jail the player
 		long releaseTime = System.currentTimeMillis() + (timeInSeconds * 1000);
@@ -196,7 +196,7 @@ public class JailCommand {
 		jailedData.jailPlayer(jailedPlayer);
 		
 		// Teleport player to jail
-		teleportToJail(target, jail);
+		TeleportUtil.teleportToJail(target, jail, source.getServer());
 		
 		// Send messages - send as two separate lines for proper formatting
 		target.sendMessage(Text.literal("§cYou have been jailed for " + formatTime(timeInSeconds) + " by " + jailerName + "!"));
@@ -224,7 +224,7 @@ public class JailCommand {
 		double z = player.getZ();
 		float yaw = player.getYaw();
 		float pitch = player.getPitch();
-		RegistryKey<World> worldKey = player.getWorld().getRegistryKey();
+		RegistryKey<World> worldKey = com.oldschooljail.util.PlayerWorldUtil.getWorld(player).getRegistryKey();
 		String worldId = worldKey.getValue().toString();
 		
 		Jail jail = new Jail(name, x, y, z, yaw, pitch, worldId);
@@ -423,25 +423,6 @@ public class JailCommand {
 		source.sendFeedback(() -> Text.literal("§eTotal: §f" + jailedPlayers.size() + " §eplayers jailed"), false);
 		
 		return 1;
-	}
-	
-	private static void teleportToJail(ServerPlayerEntity player, Jail jail) {
-		// Get the world
-		MinecraftServer server = player.getWorld().getServer();
-		if (server == null) return;
-		
-		RegistryKey<World> worldKey = RegistryKey.of(
-			net.minecraft.registry.RegistryKeys.WORLD,
-			net.minecraft.util.Identifier.of(jail.getWorldId())
-		);
-		
-		net.minecraft.server.world.ServerWorld world = server.getWorld(worldKey);
-		if (world == null) {
-			world = server.getOverworld();
-		}
-		
-		// Use exact position and rotation from jail
-		player.teleport(world, jail.getX(), jail.getY(), jail.getZ(), Set.of(), jail.getYaw(), jail.getPitch(), true);
 	}
 	
 	private static String formatTime(long seconds) {

@@ -8,6 +8,7 @@ import com.oldschooljail.event.PlayerEventHandler;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,11 +35,16 @@ public class OldSchoolJailMod implements ModInitializer {
 		// Register player events
 		PlayerEventHandler.register();
 		
+		ServerTickEvents.END_SERVER_TICK.register(server -> {
+			if (jailedPlayersData != null) {
+				jailedPlayersData.tick(server);
+			}
+		});
+
 		// Server lifecycle events
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
 			jailData = JailData.load(server);
 			jailedPlayersData = JailedPlayersData.load(server);
-			jailedPlayersData.startReleaseTimer(server);
 		});
 		
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
