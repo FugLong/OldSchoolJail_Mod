@@ -1,6 +1,6 @@
 # Old School Jail Mod
 
-A classic jail mod for Minecraft Fabric servers (26.1–26.1.2) - just like the good old days!
+A classic jail mod for Minecraft Fabric servers - just like the good old days!
 
 <p align="center">
   <img src="OldSchoolJailLogo.jpeg" alt="Old School Jail Logo" width="400">
