@@ -13,178 +13,167 @@ import com.oldschooljail.data.JailedPlayersData;
 import com.oldschooljail.model.Jail;
 import com.oldschooljail.model.JailedPlayer;
 import com.oldschooljail.util.PermissionUtil;
+import com.oldschooljail.util.PlayerWorldUtil;
 import com.oldschooljail.util.TeleportUtil;
-import net.minecraft.command.CommandSource;
-import net.minecraft.command.argument.BlockPosArgumentType;
-import net.minecraft.command.argument.EntityArgumentType;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
+import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.world.World;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.Level;
 
 import java.util.Collection;
-import java.util.concurrent.TimeUnit;
 
 public class JailCommand {
-	
-	private static final SuggestionProvider<ServerCommandSource> JAIL_NAME_SUGGESTIONS = (context, builder) -> {
+
+	private static final SuggestionProvider<CommandSourceStack> JAIL_NAME_SUGGESTIONS = (context, builder) -> {
 		JailData jailData = OldSchoolJailMod.getJailData();
 		if (jailData != null) {
-			return CommandSource.suggestMatching(
+			return SharedSuggestionProvider.suggest(
 				jailData.getAllJails().keySet(),
 				builder
 			);
 		}
 		return builder.buildFuture();
 	};
-	
-	public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
-		dispatcher.register(CommandManager.literal("jail")
-			// /jail <player> <time> <reason>
-			.then(CommandManager.argument("player", EntityArgumentType.player())
-				.then(CommandManager.argument("time", IntegerArgumentType.integer(1))
-					.then(CommandManager.argument("reason", StringArgumentType.greedyString())
+
+	public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
+		dispatcher.register(Commands.literal("jail")
+			.then(Commands.argument("player", EntityArgument.player())
+				.then(Commands.argument("time", IntegerArgumentType.integer(1))
+					.then(Commands.argument("reason", StringArgumentType.greedyString())
 						.executes(JailCommand::jailPlayer)))
-				// /jail <player> <jail_name> <time> <reason>
-				.then(CommandManager.argument("jail_name", StringArgumentType.word())
+				.then(Commands.argument("jail_name", StringArgumentType.word())
 					.suggests(JAIL_NAME_SUGGESTIONS)
-					.then(CommandManager.argument("time", IntegerArgumentType.integer(1))
-						.then(CommandManager.argument("reason", StringArgumentType.greedyString())
+					.then(Commands.argument("time", IntegerArgumentType.integer(1))
+						.then(Commands.argument("reason", StringArgumentType.greedyString())
 							.executes(JailCommand::jailPlayerToSpecificJail)))))
-			
-			// /jail set <name>
-			.then(CommandManager.literal("set")
-				.then(CommandManager.argument("name", StringArgumentType.word())
+
+			.then(Commands.literal("set")
+				.then(Commands.argument("name", StringArgumentType.word())
 					.executes(JailCommand::setJailAtCurrentPos)
-					// /jail set <name> <x> <y> <z>
-					.then(CommandManager.argument("pos", BlockPosArgumentType.blockPos())
+					.then(Commands.argument("pos", BlockPosArgument.blockPos())
 						.executes(JailCommand::setJailAtPos))))
-			
-			// /jail delete <name>
-			.then(CommandManager.literal("delete")
-				.then(CommandManager.argument("name", StringArgumentType.word())
+
+			.then(Commands.literal("delete")
+				.then(Commands.argument("name", StringArgumentType.word())
 					.suggests(JAIL_NAME_SUGGESTIONS)
 					.executes(JailCommand::deleteJail)))
-			
-			// /jail release <player>
-			.then(CommandManager.literal("release")
-				.then(CommandManager.argument("player", EntityArgumentType.player())
+
+			.then(Commands.literal("release")
+				.then(Commands.argument("player", EntityArgument.player())
 					.executes(JailCommand::releasePlayer)))
-			
-			// /jail time
-			.then(CommandManager.literal("time")
+
+			.then(Commands.literal("time")
 				.executes(JailCommand::checkJailTime)
-				// /jail time <player>
-				.then(CommandManager.argument("player", EntityArgumentType.player())
+				.then(Commands.argument("player", EntityArgument.player())
 					.executes(JailCommand::checkPlayerJailTime)))
-			
-			// /jail list
-			.then(CommandManager.literal("list")
+
+			.then(Commands.literal("list")
 				.executes(JailCommand::listJailedPlayers))
 		);
 	}
-	
-	private static int jailPlayer(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-		ServerPlayerEntity target = EntityArgumentType.getPlayer(context, "player");
+
+	private static int jailPlayer(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+		ServerPlayer target = EntityArgument.getPlayer(context, "player");
 		int time = IntegerArgumentType.getInteger(context, "time");
 		String reason = StringArgumentType.getString(context, "reason");
-		
-		// Get first available jail
-		JailData jailData = OldSchoolJailMod.getJailData();
-		Jail jail = jailData.getAllJails().entrySet().stream()
-			.findFirst()
-			.map(e -> jailData.getJail(e.getKey()))
-			.orElse(null);
-		
-		if (jail == null) {
-			context.getSource().sendError(Text.literal("§cNo jails have been set! Use /jail set <name> first."));
+
+		JailData jailData = requireJailData(context);
+		if (jailData == null) {
 			return 0;
 		}
-		
+
+		Jail jail = jailData.getFirstJail().orElse(null);
+		if (jail == null) {
+			context.getSource().sendFailure(Component.literal("§cNo jails have been set! Use /jail set <name> first."));
+			return 0;
+		}
+
 		return executeJail(context.getSource(), target, time, jail.getName(), reason);
 	}
-	
-	private static int jailPlayerToSpecificJail(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-		ServerPlayerEntity target = EntityArgumentType.getPlayer(context, "player");
+
+	private static int jailPlayerToSpecificJail(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+		ServerPlayer target = EntityArgument.getPlayer(context, "player");
 		int time = IntegerArgumentType.getInteger(context, "time");
 		String jailName = StringArgumentType.getString(context, "jail_name");
 		String reason = StringArgumentType.getString(context, "reason");
-		
-		// Check if jail exists
-		JailData jailData = OldSchoolJailMod.getJailData();
-		if (!jailData.hasJail(jailName)) {
-			context.getSource().sendError(Text.literal("§cJail '" + jailName + "' doesn't exist!"));
+
+		JailData jailData = requireJailData(context);
+		if (jailData == null) {
 			return 0;
 		}
-		
+		if (!jailData.hasJail(jailName)) {
+			context.getSource().sendFailure(Component.literal("§cJail '" + jailName + "' doesn't exist!"));
+			return 0;
+		}
+
 		return executeJail(context.getSource(), target, time, jailName, reason);
 	}
-	
-	private static int executeJail(ServerCommandSource source, ServerPlayerEntity target, int time, String jailName, String reason) throws CommandSyntaxException {
-		// Check permission
+
+	private static int executeJail(CommandSourceStack source, ServerPlayer target, int time, String jailName, String reason) throws CommandSyntaxException {
 		if (!PermissionUtil.hasPermission(source, PermissionUtil.JAIL_PLAYER)) {
-			source.sendError(Text.literal("§cYou don't have permission to jail players!"));
+			source.sendFailure(Component.literal("§cYou don't have permission to jail players!"));
 			return 0;
 		}
-		
-		// Prevent self-jailing
+
 		if (source.getPlayer() != null && source.getPlayer().equals(target)) {
-			source.sendError(Text.literal("§cYou can't jail yourself!"));
+			source.sendFailure(Component.literal("§cYou can't jail yourself!"));
 			return 0;
 		}
-		
-		// Check if target is immune
+
 		if (PermissionUtil.isImmune(target)) {
-			source.sendError(Text.literal("§cThat player is immune to jailing!"));
+			source.sendFailure(Component.literal("§cThat player is immune to jailing!"));
 			return 0;
 		}
-		
-		// Check if target is already jailed
+
 		JailedPlayersData jailedData = OldSchoolJailMod.getJailedPlayersData();
-		if (jailedData.isJailed(target.getUuid())) {
-			JailedPlayer existingJail = jailedData.getJailedPlayer(target.getUuid());
+		if (jailedData.isJailed(target.getUUID())) {
+			JailedPlayer existingJail = jailedData.getJailedPlayer(target.getUUID());
 			long remaining = existingJail.getRemainingTimeSeconds();
-			source.sendError(Text.literal("§c" + target.getName().getString() + " is already jailed! " +
+			source.sendFailure(Component.literal("§c" + target.getGameProfile().name() + " is already jailed! " +
 				"Remaining time: " + formatTime(remaining) + ". Use /jail release first."));
 			return 0;
 		}
-		
+
 		JailConfig config = OldSchoolJailMod.getConfig();
 		long timeInSeconds = config.convertToSeconds(time);
-		
-		// Check max sentence (-1 in config = unlimited)
+
 		if (config.hasMaxSentenceLimit() && timeInSeconds > config.maxSentenceSeconds) {
-			source.sendError(Text.literal("§cJail time exceeds maximum allowed sentence of " +
+			source.sendFailure(Component.literal("§cJail time exceeds maximum allowed sentence of " +
 				formatTime(config.maxSentenceSeconds) + "!"));
 			return 0;
 		}
-		
+
 		JailData jailData = OldSchoolJailMod.getJailData();
-		
-		Jail jail = jailData.getJail(jailName);
-		if (jail == null) {
-			source.sendError(Text.literal("§cJail '" + jailName + "' doesn't exist!"));
+		if (jailData == null) {
+			source.sendFailure(Component.literal("§cJail data is not loaded yet. Try again in a moment."));
 			return 0;
 		}
-		
-		// Capture original location
+
+		Jail jail = jailData.getJail(jailName);
+		if (jail == null) {
+			source.sendFailure(Component.literal("§cJail '" + jailName + "' doesn't exist!"));
+			return 0;
+		}
+
 		double origX = target.getX();
 		double origY = target.getY();
 		double origZ = target.getZ();
-		float origYaw = target.getYaw();
-		float origPitch = target.getPitch();
-		String origWorld = com.oldschooljail.util.PlayerWorldUtil.getWorldId(target);
-		
-		// Jail the player
+		float origYaw = target.getYRot();
+		float origPitch = target.getXRot();
+		String origWorld = PlayerWorldUtil.getWorldId(target);
+
 		long releaseTime = System.currentTimeMillis() + (timeInSeconds * 1000);
-		String jailerName = source.getName();
-		
+		String jailerName = source.getTextName();
+
 		JailedPlayer jailedPlayer = new JailedPlayer(
-			target.getUuid(),
+			target.getUUID(),
 			jail.getName(),
 			releaseTime,
 			reason,
@@ -192,244 +181,271 @@ public class JailCommand {
 			origX, origY, origZ,
 			origYaw, origPitch, origWorld
 		);
-		
+
 		jailedData.jailPlayer(jailedPlayer);
-		
-		// Teleport player to jail
+
 		TeleportUtil.teleportToJail(target, jail, source.getServer());
-		
-		// Send messages - send as two separate lines for proper formatting
-		target.sendMessage(Text.literal("§cYou have been jailed for " + formatTime(timeInSeconds) + " by " + jailerName + "!"));
-		target.sendMessage(Text.literal("§eReason: " + reason));
-		source.sendFeedback(() -> Text.literal("§aJailed " + target.getName().getString() + 
+
+		target.sendSystemMessage(Component.literal("§cYou have been jailed for " + formatTime(timeInSeconds) + " by " + jailerName + "!"));
+		target.sendSystemMessage(Component.literal("§eReason: " + reason));
+		source.sendSuccess(() -> Component.literal("§aJailed " + target.getGameProfile().name() +
 			" in '" + jail.getName() + "' for " + formatTime(timeInSeconds) + "!"), true);
-		
+
 		return 1;
 	}
-	
-	private static int setJailAtCurrentPos(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-		ServerCommandSource source = context.getSource();
-		
+
+	private static int setJailAtCurrentPos(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+		CommandSourceStack source = context.getSource();
+
 		if (!PermissionUtil.hasPermission(source, PermissionUtil.SET_JAIL)) {
-			source.sendError(Text.literal("§cYou don't have permission to set jails!"));
+			source.sendFailure(Component.literal("§cYou don't have permission to set jails!"));
 			return 0;
 		}
-		
-		ServerPlayerEntity player = source.getPlayerOrThrow();
+
+		ServerPlayer player = source.getPlayerOrException();
 		String name = StringArgumentType.getString(context, "name");
-		
-		// Capture exact position and rotation
+
 		double x = player.getX();
 		double y = player.getY();
 		double z = player.getZ();
-		float yaw = player.getYaw();
-		float pitch = player.getPitch();
-		RegistryKey<World> worldKey = com.oldschooljail.util.PlayerWorldUtil.getWorld(player).getRegistryKey();
-		String worldId = worldKey.getValue().toString();
-		
-		Jail jail = new Jail(name, x, y, z, yaw, pitch, worldId);
-		OldSchoolJailMod.getJailData().addJail(jail);
-		
-		source.sendFeedback(() -> Text.literal("§aJail '" + name + "' set at " + 
-			String.format("%.2f, %.2f, %.2f", x, y, z)), true);
-		
-		return 1;
-	}
-	
-	private static int setJailAtPos(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-		ServerCommandSource source = context.getSource();
-		
-		if (!PermissionUtil.hasPermission(source, PermissionUtil.SET_JAIL)) {
-			source.sendError(Text.literal("§cYou don't have permission to set jails!"));
+		float yaw = player.getYRot();
+		float pitch = player.getXRot();
+		ResourceKey<Level> levelKey = PlayerWorldUtil.getLevel(player).dimension();
+		String worldId = levelKey.identifier().toString();
+
+		JailData jailData = requireJailData(context);
+		if (jailData == null) {
 			return 0;
 		}
-		
+
+		Jail jail = new Jail(name, x, y, z, yaw, pitch, worldId);
+		jailData.addJail(jail);
+
+		source.sendSuccess(() -> Component.literal("§aJail '" + name + "' set at " +
+			String.format("%.2f, %.2f, %.2f", x, y, z)), true);
+
+		return 1;
+	}
+
+	private static int setJailAtPos(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+		CommandSourceStack source = context.getSource();
+
+		if (!PermissionUtil.hasPermission(source, PermissionUtil.SET_JAIL)) {
+			source.sendFailure(Component.literal("§cYou don't have permission to set jails!"));
+			return 0;
+		}
+
 		String name = StringArgumentType.getString(context, "name");
-		BlockPos pos = BlockPosArgumentType.getBlockPos(context, "pos");
-		
-		// When setting by coordinates, use block center and default rotation
+		BlockPos pos = BlockPosArgument.getBlockPos(context, "pos");
+
 		double x = pos.getX() + 0.5;
 		double y = pos.getY();
 		double z = pos.getZ() + 0.5;
 		float yaw = 0;
 		float pitch = 0;
-		
-		RegistryKey<World> worldKey = source.getWorld().getRegistryKey();
-		String worldId = worldKey.getValue().toString();
-		
+
+		ResourceKey<Level> levelKey = source.getLevel().dimension();
+		String worldId = levelKey.identifier().toString();
+
+		JailData jailData = requireJailData(context);
+		if (jailData == null) {
+			return 0;
+		}
+
 		Jail jail = new Jail(name, x, y, z, yaw, pitch, worldId);
-		OldSchoolJailMod.getJailData().addJail(jail);
-		
-		source.sendFeedback(() -> Text.literal("§aJail '" + name + "' set at " + 
+		jailData.addJail(jail);
+
+		source.sendSuccess(() -> Component.literal("§aJail '" + name + "' set at " +
 			pos.getX() + ", " + pos.getY() + ", " + pos.getZ()), true);
-		
+
 		return 1;
 	}
-	
-	private static int deleteJail(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-		ServerCommandSource source = context.getSource();
-		
+
+	private static int deleteJail(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+		CommandSourceStack source = context.getSource();
+
 		if (!PermissionUtil.hasPermission(source, PermissionUtil.DELETE_JAIL)) {
-			source.sendError(Text.literal("§cYou don't have permission to delete jails!"));
+			source.sendFailure(Component.literal("§cYou don't have permission to delete jails!"));
 			return 0;
 		}
-		
+
 		String name = StringArgumentType.getString(context, "name");
-		JailData jailData = OldSchoolJailMod.getJailData();
-		
-		if (!jailData.hasJail(name)) {
-			source.sendError(Text.literal("§cJail '" + name + "' doesn't exist!"));
+		JailData jailData = requireJailData(context);
+		if (jailData == null) {
 			return 0;
 		}
-		
-		// Release players in this jail and teleport them back (if enabled)
+
+		if (!jailData.hasJail(name)) {
+			source.sendFailure(Component.literal("§cJail '" + name + "' doesn't exist!"));
+			return 0;
+		}
+
 		JailedPlayersData jailedData = OldSchoolJailMod.getJailedPlayersData();
+		if (jailedData == null) {
+			source.sendFailure(Component.literal("§cJail data is not loaded yet. Try again in a moment."));
+			return 0;
+		}
 		for (JailedPlayer jp : jailedData.getPlayersInJail(name)) {
-			ServerPlayerEntity player = source.getServer().getPlayerManager().getPlayer(jp.getPlayerUuid());
+			ServerPlayer player = source.getServer().getPlayerList().getPlayer(jp.getPlayerUuid());
 			if (player != null) {
 				if (OldSchoolJailMod.getConfig().teleportBackOnRelease) {
 					jailedData.teleportToOriginalLocation(player, jp, source.getServer());
 				}
-				player.sendMessage(Text.literal("§aYou have been released because the jail was deleted."));
+				player.sendSystemMessage(Component.literal("§aYou have been released because the jail was deleted."));
 			}
 			jailedData.releasePlayer(jp.getPlayerUuid());
 		}
-		
+
 		jailData.removeJail(name);
-		source.sendFeedback(() -> Text.literal("§aDeleted jail '" + name + "' and released all prisoners."), true);
-		
+		source.sendSuccess(() -> Component.literal("§aDeleted jail '" + name + "' and released all prisoners."), true);
+
 		return 1;
 	}
-	
-	private static int releasePlayer(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-		ServerCommandSource source = context.getSource();
-		
+
+	private static int releasePlayer(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+		CommandSourceStack source = context.getSource();
+
 		if (!PermissionUtil.hasPermission(source, PermissionUtil.RELEASE_PLAYER)) {
-			source.sendError(Text.literal("§cYou don't have permission to release players!"));
+			source.sendFailure(Component.literal("§cYou don't have permission to release players!"));
 			return 0;
 		}
-		
-		ServerPlayerEntity target = EntityArgumentType.getPlayer(context, "player");
+
+		ServerPlayer target = EntityArgument.getPlayer(context, "player");
 		JailedPlayersData jailedData = OldSchoolJailMod.getJailedPlayersData();
-		
-		if (!jailedData.isJailed(target.getUuid())) {
-			source.sendError(Text.literal("§c" + target.getName().getString() + " is not jailed!"));
+
+		if (!jailedData.isJailed(target.getUUID())) {
+			source.sendFailure(Component.literal("§c" + target.getGameProfile().name() + " is not jailed!"));
 			return 0;
 		}
-		
-		// Get jailed player data before releasing
-		JailedPlayer jailedPlayer = jailedData.getJailedPlayer(target.getUuid());
-		
-		// Release and teleport back (if enabled)
-		jailedData.releasePlayer(target.getUuid());
-		
+
+		JailedPlayer jailedPlayer = jailedData.getJailedPlayer(target.getUUID());
+
+		jailedData.releasePlayer(target.getUUID());
+
 		if (jailedPlayer != null && OldSchoolJailMod.getConfig().teleportBackOnRelease) {
 			jailedData.teleportToOriginalLocation(target, jailedPlayer, source.getServer());
 		}
-		
-		target.sendMessage(Text.literal(OldSchoolJailMod.getConfig().releaseMessage));
-		source.sendFeedback(() -> Text.literal("§aReleased " + target.getName().getString() + " from jail."), true);
-		
+
+		target.sendSystemMessage(Component.literal(OldSchoolJailMod.getConfig().releaseMessage));
+		source.sendSuccess(() -> Component.literal("§aReleased " + target.getGameProfile().name() + " from jail."), true);
+
 		return 1;
 	}
-	
-	private static int checkJailTime(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-		ServerCommandSource source = context.getSource();
-		ServerPlayerEntity player = source.getPlayerOrThrow();
-		
+
+	private static int checkJailTime(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+		CommandSourceStack source = context.getSource();
+		ServerPlayer player = source.getPlayerOrException();
+
+		if (!OldSchoolJailMod.getConfig().allowJailTime) {
+			source.sendFailure(Component.literal("§cChecking jail time is disabled on this server."));
+			return 0;
+		}
+		if (!PermissionUtil.hasJailTimePermission(source)) {
+			source.sendFailure(Component.literal("§cYou don't have permission to use /jail time!"));
+			return 0;
+		}
+
 		JailedPlayersData jailedData = OldSchoolJailMod.getJailedPlayersData();
-		JailedPlayer jailed = jailedData.getJailedPlayer(player.getUuid());
-		
-		if (jailed == null) {
-			source.sendError(Text.literal("§cYou are not jailed!"));
+		if (jailedData == null) {
+			source.sendFailure(Component.literal("§cJail data is not loaded yet. Try again in a moment."));
 			return 0;
 		}
-		
+		JailedPlayer jailed = jailedData.getJailedPlayer(player.getUUID());
+
+		if (jailed == null) {
+			source.sendFailure(Component.literal("§cYou are not jailed!"));
+			return 0;
+		}
+
 		long remaining = jailed.getRemainingTimeSeconds();
-		source.sendFeedback(() -> Text.literal("§eYou will be released in: " + formatTime(remaining)), false);
-		
+		source.sendSuccess(() -> Component.literal("§eYou will be released in: " + formatTime(remaining)), false);
+
 		return 1;
 	}
-	
-	private static int checkPlayerJailTime(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-		ServerCommandSource source = context.getSource();
-		
-		// Check permission - only admins can check other players' jail time
+
+	private static int checkPlayerJailTime(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+		CommandSourceStack source = context.getSource();
+
 		if (!PermissionUtil.hasPermission(source, PermissionUtil.JAIL_PLAYER)) {
-			source.sendError(Text.literal("§cYou don't have permission to check other players' jail time!"));
+			source.sendFailure(Component.literal("§cYou don't have permission to check other players' jail time!"));
 			return 0;
 		}
-		
-		ServerPlayerEntity target = EntityArgumentType.getPlayer(context, "player");
+
+		ServerPlayer target = EntityArgument.getPlayer(context, "player");
 		JailedPlayersData jailedData = OldSchoolJailMod.getJailedPlayersData();
-		JailedPlayer jailed = jailedData.getJailedPlayer(target.getUuid());
-		
+		JailedPlayer jailed = jailedData.getJailedPlayer(target.getUUID());
+
 		if (jailed == null) {
-			source.sendError(Text.literal("§c" + target.getName().getString() + " is not jailed!"));
+			source.sendFailure(Component.literal("§c" + target.getGameProfile().name() + " is not jailed!"));
 			return 0;
 		}
-		
+
 		long remaining = jailed.getRemainingTimeSeconds();
-		source.sendFeedback(() -> Text.literal("§e" + target.getName().getString() + " will be released in: " + formatTime(remaining)), false);
-		
+		source.sendSuccess(() -> Component.literal("§e" + target.getGameProfile().name() + " will be released in: " + formatTime(remaining)), false);
+
 		return 1;
 	}
-	
-	private static int listJailedPlayers(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-		ServerCommandSource source = context.getSource();
-		
-		// Check permission - only admins can list jailed players
+
+	private static int listJailedPlayers(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+		CommandSourceStack source = context.getSource();
+
 		if (!PermissionUtil.hasPermission(source, PermissionUtil.JAIL_PLAYER)) {
-			source.sendError(Text.literal("§cYou don't have permission to list jailed players!"));
+			source.sendFailure(Component.literal("§cYou don't have permission to list jailed players!"));
 			return 0;
 		}
-		
+
 		JailedPlayersData jailedData = OldSchoolJailMod.getJailedPlayersData();
 		Collection<JailedPlayer> jailedPlayers = jailedData.getAllJailedPlayers();
-		
+
 		if (jailedPlayers.isEmpty()) {
-			source.sendFeedback(() -> Text.literal("§aNo players are currently jailed."), false);
+			source.sendSuccess(() -> Component.literal("§aNo players are currently jailed."), false);
 			return 1;
 		}
-		
-		source.sendFeedback(() -> Text.literal("§e=== Currently Jailed Players ==="), false);
-		
+
+		source.sendSuccess(() -> Component.literal("§e=== Currently Jailed Players ==="), false);
+
 		for (JailedPlayer jailedPlayer : jailedPlayers) {
-			// Try to get player name from server
 			final MinecraftServer server = source.getServer();
 			final String playerName;
-			
+
 			if (server != null) {
-				ServerPlayerEntity player = server.getPlayerManager().getPlayer(jailedPlayer.getPlayerUuid());
+				ServerPlayer player = server.getPlayerList().getPlayer(jailedPlayer.getPlayerUuid());
 				if (player != null) {
-					playerName = player.getName().getString();
+					playerName = player.getGameProfile().name();
 				} else {
-					// Player is offline, use UUID as fallback
 					playerName = jailedPlayer.getPlayerUuid().toString().substring(0, 8) + "...";
 				}
 			} else {
 				playerName = "Unknown";
 			}
-			
+
 			final long remaining = jailedPlayer.getRemainingTimeSeconds();
-			final String status = server != null && server.getPlayerManager().getPlayer(jailedPlayer.getPlayerUuid()) != null ? "§aOnline" : "§7Offline";
-			
-			source.sendFeedback(() -> Text.literal("§e" + playerName + " §7- Jail: §f" + jailedPlayer.getJailName() + 
+			final String status = server != null && server.getPlayerList().getPlayer(jailedPlayer.getPlayerUuid()) != null ? "§aOnline" : "§7Offline";
+
+			source.sendSuccess(() -> Component.literal("§e" + playerName + " §7- Jail: §f" + jailedPlayer.getJailName() +
 				" §7- Time: §f" + formatTime(remaining) + " §7- Status: " + status), false);
-			source.sendFeedback(() -> Text.literal("§7  Reason: §f" + jailedPlayer.getReason() + 
+			source.sendSuccess(() -> Component.literal("§7  Reason: §f" + jailedPlayer.getReason() +
 				" §7- Jailed by: §f" + jailedPlayer.getJailedBy()), false);
 		}
-		
-		source.sendFeedback(() -> Text.literal("§eTotal: §f" + jailedPlayers.size() + " §eplayers jailed"), false);
-		
+
+		source.sendSuccess(() -> Component.literal("§eTotal: §f" + jailedPlayers.size() + " §eplayers jailed"), false);
+
 		return 1;
 	}
-	
+
+	private static JailData requireJailData(CommandContext<CommandSourceStack> context) {
+		JailData jailData = OldSchoolJailMod.getJailData();
+		if (jailData == null) {
+			context.getSource().sendFailure(Component.literal("§cJail data is not loaded yet. Try again in a moment."));
+		}
+		return jailData;
+	}
+
 	private static String formatTime(long seconds) {
 		long hours = seconds / 3600;
 		long minutes = (seconds % 3600) / 60;
 		long secs = seconds % 60;
-		
+
 		if (hours > 0) {
 			return hours + "h " + minutes + "m " + secs + "s";
 		} else if (minutes > 0) {
@@ -439,4 +455,3 @@ public class JailCommand {
 		}
 	}
 }
-

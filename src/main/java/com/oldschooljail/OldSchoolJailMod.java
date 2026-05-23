@@ -9,6 +9,7 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.loader.api.FabricLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,10 +28,12 @@ public class OldSchoolJailMod implements ModInitializer {
 		// Load config
 		config = JailConfig.load();
 		
-		// Register commands
-		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-			JailCommand.register(dispatcher);
-		});
+		// Register commands on dedicated server only
+		if (FabricLoader.getInstance().getEnvironmentType() == net.fabricmc.api.EnvType.SERVER) {
+			CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+				JailCommand.register(dispatcher);
+			});
+		}
 		
 		// Register player events
 		PlayerEventHandler.register();

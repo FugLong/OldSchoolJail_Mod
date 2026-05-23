@@ -1,24 +1,24 @@
 package com.oldschooljail.util;
 
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 
-/** World/server access that works on Minecraft 1.21.2 through 1.21.11. */
+/** World/server access for Minecraft 26.1.x. */
 public final class PlayerWorldUtil {
 
 	private PlayerWorldUtil() {
 	}
 
-	public static ServerWorld getWorld(ServerPlayerEntity player) {
-		return (ServerWorld) player.getEntityWorld();
+	public static ServerLevel getLevel(ServerPlayer player) {
+		return (ServerLevel) player.level();
 	}
 
-	public static MinecraftServer getServer(ServerPlayerEntity player) {
-		return getWorld(player).getServer();
+	public static MinecraftServer getServer(ServerPlayer player) {
+		return getLevel(player).getServer();
 	}
 
-	public static String getWorldId(ServerPlayerEntity player) {
-		return getWorld(player).getRegistryKey().getValue().toString();
+	public static String getWorldId(ServerPlayer player) {
+		return getLevel(player).dimension().identifier().toString();
 	}
 }

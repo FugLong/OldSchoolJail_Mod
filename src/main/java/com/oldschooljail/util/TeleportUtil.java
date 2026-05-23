@@ -2,13 +2,13 @@ package com.oldschooljail.util;
 
 import com.oldschooljail.OldSchoolJailMod;
 import com.oldschooljail.model.Jail;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.Identifier;
-import net.minecraft.world.World;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.Level;
 
 import java.util.Set;
 
@@ -17,13 +17,13 @@ public final class TeleportUtil {
 	private TeleportUtil() {
 	}
 
-	public static void teleportToJail(ServerPlayerEntity player, Jail jail, MinecraftServer server) {
-		ServerWorld world = resolveWorld(server, jail.getWorldId());
-		player.teleport(world, jail.getX(), jail.getY(), jail.getZ(), Set.of(), jail.getYaw(), jail.getPitch(), true);
+	public static void teleportToJail(ServerPlayer player, Jail jail, MinecraftServer server) {
+		ServerLevel level = resolveLevel(server, jail.getWorldId());
+		player.teleportTo(level, jail.getX(), jail.getY(), jail.getZ(), Set.of(), jail.getYaw(), jail.getPitch(), true);
 	}
 
 	public static void teleportToSavedLocation(
-		ServerPlayerEntity player,
+		ServerPlayer player,
 		MinecraftServer server,
 		double x,
 		double y,
@@ -33,19 +33,19 @@ public final class TeleportUtil {
 		String worldId
 	) {
 		try {
-			ServerWorld world = resolveWorld(server, worldId);
-			player.teleport(world, x, y, z, Set.of(), yaw, pitch, true);
+			ServerLevel level = resolveLevel(server, worldId);
+			player.teleportTo(level, x, y, z, Set.of(), yaw, pitch, true);
 		} catch (Exception e) {
 			OldSchoolJailMod.LOGGER.error("Failed to teleport player to saved location", e);
 		}
 	}
 
-	private static ServerWorld resolveWorld(MinecraftServer server, String worldId) {
-		RegistryKey<World> worldKey = RegistryKey.of(
-			RegistryKeys.WORLD,
-			Identifier.of(worldId)
+	private static ServerLevel resolveLevel(MinecraftServer server, String worldId) {
+		ResourceKey<Level> levelKey = ResourceKey.create(
+			Registries.DIMENSION,
+			Identifier.parse(worldId)
 		);
-		ServerWorld world = server.getWorld(worldKey);
-		return world != null ? world : server.getOverworld();
+		ServerLevel level = server.getLevel(levelKey);
+		return level != null ? level : server.overworld();
 	}
 }

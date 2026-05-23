@@ -106,6 +106,7 @@ public class JailConfig {
 			config.set("restrictions.block_teleportation", blockTeleportation);
 			config.setComment("restrictions.block_teleportation",
 				" Teleport player back to jail if they move more than 50 blocks away\n" +
+				" Also blocks ender pearls, chorus fruit, and wind charges while jailed\n" +
 				" Recommended: true (prevents escape via plugins/mods)");
 			
 			config.set("restrictions.block_block_breaking", blockBlockBreaking);
@@ -157,11 +158,15 @@ public class JailConfig {
 	}
 
 	public long convertToSeconds(long time) {
-		return switch (inputTimeUnit) {
-			case SECONDS -> time;
-			case MINUTES -> time * 60;
-			case HOURS -> time * 3600;
+		long multiplier = switch (inputTimeUnit) {
+			case SECONDS -> 1L;
+			case MINUTES -> 60L;
+			case HOURS -> 3600L;
 		};
+		if (time > Long.MAX_VALUE / multiplier) {
+			return Long.MAX_VALUE;
+		}
+		return time * multiplier;
 	}
 	
 	public String getTimeUnitName() {
